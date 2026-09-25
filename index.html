@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="/_next/static/css/index.ClJ2TVmY.css" data-rsc-css-href="/_next/static/css/index.ClJ2TVmY.css" data-precedence="vite-rsc/importer-resources"/><link rel="stylesheet" href="/_next/static/css/page.D_VzTnsf.css" data-precedence="vite-rsc/client-reference"/><link rel="modulepreload" fetchPriority="low" href="/_next/static/chunks/index-DkoRTtHK.js"/><script src="/_next/static/chunks/rolldown-runtime-C60lm6uB.js" type="module" async=""></script><script src="/_next/static/chunks/framework-D_rUT4EX.js" type="module" async=""></script><link rel="modulepreload" href="/_next/static/chunks/layout-segment-context-Dgr8H6yx.js" crossorigin=""/><link rel="modulepreload" href="/_next/static/chunks/presentation-scale-Jo4fKs6g.js" crossorigin=""/><link rel="modulepreload" href="/_next/static/chunks/page-HhhFzvha.js" crossorigin=""/><title>CPG International | Selected Architecture</title><meta name="description" content="Explore architecture through film: coastal hospitality, elevated living and Thang Long University."/><link rel="icon" href="/media/cpg-logo.png"/><script>Object.assign(((self[Symbol.for("vinext.navigationRuntime")]??={bootstrap:{routeManifest:null},functions:{}}).bootstrap.rsc??={rsc:[]}),{params:{},nav:{"pathname":"/","searchParams":[]}})</script><link rel="modulepreload" href="/_next/static/chunks/index-DkoRTtHK.js" />
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/msal/2.38.3/js/msal-browser.min.js" crossorigin="anonymous"></script>
 <style id="cpg-auth-css">
-  /* Ẩn triệt để nội dung chính khi chưa xác thực */
+  /* Ẩn nội dung chính khi chưa xác thực */
   html.auth-locked body main,
   html.auth-locked body footer,
   html.auth-locked body nav,
@@ -27,7 +27,6 @@
   }
 </style>
 <script>
-  // Khóa giao diện ngay lập tức ở cấp HTML
   document.documentElement.classList.add('auth-locked');
 </script>
 </head><body>
@@ -37,7 +36,7 @@
   <div style="background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 40px 32px; max-width: 440px; width: 90%; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);">
     <h2 style="color: #ffffff; font-size: 22px; font-weight: 700; margin-bottom: 12px; letter-spacing: 0.5px;">CPGV PRESENTATION</h2>
     <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin-bottom: 26px;">Vui lòng đăng nhập bằng tài khoản Microsoft 365 tổ chức để mở bài trình chiếu.</p>
-    <button id="btn-ms-login" type="button" onclick="loginWithMS()" style="background-color: #0284c7; color: #ffffff; border: none; border-radius: 6px; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%;">
+    <button id="btn-ms-login" type="button" onclick="loginWithMS()" style="background-color: #0284c7; color: #ffffff; border: none; border-radius: 6px; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; transition: background-color 0.2s;">
       🔑 Đăng nhập với Microsoft
     </button>
     <p id="auth-error-msg" style="color: #ef4444; font-size: 13px; margin-top: 14px; display: none;"></p>
@@ -55,10 +54,7 @@
       if (!document.documentElement.classList.contains('auth-locked')) {
         document.documentElement.classList.add('auth-locked');
       }
-      const overlay = document.getElementById('cpg-auth-overlay');
-      if (!overlay) {
-        ensureOverlayExists();
-      }
+      ensureOverlayExists();
     }
   });
   observer.observe(document.body, { childList: true, subtree: true });
@@ -82,7 +78,7 @@
     }
   }
 
-  // Khởi tạo MSAL
+  // Cấu hình MSAL
   const msalConfig = {
     auth: {
       clientId: "4ebb9b59-99e4-4521-afc2-2b04f9f0bfca",
@@ -96,47 +92,79 @@
   };
 
   let msalInstance = null;
-  if (window.msal) {
-    msalInstance = new msal.PublicClientApplication(msalConfig);
-    msalInstance.initialize().then(() => {
-      msalInstance.handleRedirectPromise().then(handleAuthResponse).catch(err => showError(err.message));
-    });
-  }
 
-  function handleAuthResponse(res) {
-    if (res && res.account) {
-      unlockPage();
-    }
-  }
-
-  function loginWithMS() {
-    const btn = document.getElementById("btn-ms-login");
-    if (btn) btn.innerText = "Đang xác thực...";
-
+  function initMsalInstance() {
     if (!msalInstance && window.msal) {
       msalInstance = new msal.PublicClientApplication(msalConfig);
     }
+    return msalInstance;
+  }
 
-    if (!msalInstance) {
-      showError("Chưa tải được thư viện xác thực Microsoft, vui lòng tải lại trang.");
+  // Khởi tạo kiểm tra redirect
+  window.addEventListener('DOMContentLoaded', () => {
+    const inst = initMsalInstance();
+    if (inst) {
+      inst.initialize().then(() => {
+        return inst.handleRedirectPromise();
+      }).then(res => {
+        if (res && res.account) {
+          unlockPage();
+        }
+      }).catch(err => {
+        showError(err.message);
+      });
+    }
+  });
+
+  function loginWithMS() {
+    const btn = document.getElementById("btn-ms-login");
+    const errBox = document.getElementById("auth-error-msg");
+    if (errBox) errBox.style.display = "none";
+
+    // Nếu chưa có đối tượng MSAL, tải script dự phòng
+    if (!window.msal) {
+      if (btn) btn.innerText = "Đang tải thư viện...";
+      const fallbackScript = document.createElement("script");
+      fallbackScript.src = "https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js";
+      fallbackScript.onload = () => {
+        executeLogin();
+      };
+      fallbackScript.onerror = () => {
+        showError("Không thể nạp thư viện xác thực. Vui lòng kiểm tra lại kết nối mạng.");
+        if (btn) btn.innerText = "🔑 Đăng nhập với Microsoft";
+      };
+      document.head.appendChild(fallbackScript);
+      return;
+    }
+
+    executeLogin();
+  }
+
+  function executeLogin() {
+    const btn = document.getElementById("btn-ms-login");
+    if (btn) btn.innerText = "Đang kết nối Microsoft...";
+
+    const inst = initMsalInstance();
+    if (!inst) {
+      showError("Thư viện xác thực chưa sẵn sàng.");
       if (btn) btn.innerText = "🔑 Đăng nhập với Microsoft";
       return;
     }
 
-    msalInstance.loginPopup({ scopes: ["User.Read"], prompt: "select_account" })
-      .then(res => {
-        if (res && res.account) {
-          unlockPage();
-        }
-      })
-      .catch(err => {
-        if (btn) btn.innerText = "🔑 Đăng nhập với Microsoft";
-        if (err.errorCode === "popup_window_error" || err.errorCode === "empty_window_error") {
-          msalInstance.loginRedirect({ scopes: ["User.Read"] });
-        } else {
-          showError(err.message || "Đăng nhập thất bại.");
-        }
-      });
+    inst.initialize().then(() => {
+      return inst.loginPopup({ scopes: ["User.Read"], prompt: "select_account" });
+    }).then(res => {
+      if (res && res.account) {
+        unlockPage();
+      }
+    }).catch(err => {
+      if (btn) btn.innerText = "🔑 Đăng nhập với Microsoft";
+      if (err.errorCode === "popup_window_error" || err.errorCode === "empty_window_error") {
+        inst.loginRedirect({ scopes: ["User.Read"] });
+      } else {
+        showError(err.message || "Đăng nhập thất bại.");
+      }
+    });
   }
 
   function unlockPage() {
