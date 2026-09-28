@@ -32,6 +32,7 @@
   }
 
   var REQUIRED_TENANT_ID = "7a69309d-b4fc-454f-a903-873fff81d501";
+  var ALLOWED_DOMAIN = "@cpgcorp.com.sg";
   var authErrorMessage = "";
 
   function parseJwt(token) {
@@ -47,7 +48,6 @@
     }
   }
 
-  // Nếu trong SharePoint: Mở thẳng không khóa
   if (isEmbeddedInSharePoint) {
     sessionStorage.setItem('cpg_auth_passed', 'true');
   } else {
@@ -57,12 +57,13 @@
       var idToken = params.get('id_token');
       if (idToken) {
         var payload = parseJwt(idToken);
-        // Kiểm tra xem Tenant ID có trùng khớp với tổ chức công ty không
-        if (payload && payload.tid === REQUIRED_TENANT_ID) {
+        var userEmail = (payload.email || payload.preferred_username || payload.upn || "").toLowerCase();
+        
+        // KIỂM TRA CHẶT ĐUÔI EMAIL VÀ TENANT ID
+        if (payload && payload.tid === REQUIRED_TENANT_ID && userEmail.endsWith(ALLOWED_DOMAIN)) {
           sessionStorage.setItem('cpg_auth_passed', 'true');
-          sessionStorage.setItem('cpg_user_name', payload.name || payload.preferred_username || '');
         } else {
-          authErrorMessage = "Tài khoản không thuộc tổ chức CPG. Quyền truy cập bị từ chối!";
+          authErrorMessage = "Truy cập bị từ chối! Chỉ tài khoản có đuôi " + ALLOWED_DOMAIN + " mới được phép truy cập.";
           sessionStorage.removeItem('cpg_auth_passed');
         }
       }
@@ -94,7 +95,7 @@
     overlay.id = 'cpg-auth-overlay';
     overlay.innerHTML = '<div style="background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 40px 32px; max-width: 440px; width: 90%; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);">' +
       '<h2 style="color: #ffffff; font-size: 22px; font-weight: 700; margin-bottom: 12px; letter-spacing: 0.5px;">CPGV PRESENTATION</h2>' +
-      '<p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin-bottom: 26px;">Vui lòng đăng nhập bằng tài khoản Microsoft 365 tổ chức để mở bài trình chiếu.</p>' +
+      '<p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin-bottom: 26px;">Vui lòng đăng nhập bằng tài khoản Microsoft 365 tổ chức (@cpgcorp.com.sg) để mở bài trình chiếu.</p>' +
       '<button id="btn-ms-login" type="button" onclick="startMicrosoftLogin()" style="background-color: #0284c7; color: #ffffff; border: none; border-radius: 6px; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; transition: background-color 0.2s;">🔑 Đăng nhập với Microsoft</button>' +
       '<p id="auth-error-msg" style="color: #ef4444; font-size: 13px; margin-top: 14px; ' + (authErrorMessage ? 'display:block;' : 'display:none;') + '">' + (authErrorMessage || '') + '</p>' +
       '</div>';
@@ -116,7 +117,7 @@
   }
 
   function startMicrosoftLogin() {
-    // Chỉ định rõ ràng tenant ID thay vì common/organizations để ép buộc dùng đúng tài khoản công ty
+    // Chỉ định chính xác Tenant ID của tổ chức để đóng cổng Personal accounts
     var authUrl = "https://login.microsoftonline.com/" + TENANT_ID + "/oauth2/v2.0/authorize?" +
       "client_id=" + encodeURIComponent(CLIENT_ID) +
       "&response_type=id_token" +
